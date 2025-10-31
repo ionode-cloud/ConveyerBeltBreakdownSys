@@ -5,7 +5,7 @@ const cors = require('cors');
 // --- 1. INITIALIZE EXPRESS APP ---
 const app = express();
 app.use(express.json()); // Middleware to parse JSON bodies
-app.use(cors())
+app.use(cors());
 
 // --- 2. DATABASE CONNECTION ---
 // Using the connection string you provided.
@@ -35,7 +35,7 @@ const conveyorBeltSchema = new mongoose.Schema({
     conditionMonitoring: {
         vibration: { type: Number, default: 0 },
         lubricant: { type: String, default: 'Optimal' },
-        tension: { type: Number, default: 0 },
+        tension: { type: String, default: 0 },
     }
 }, {
     // Automatically add `createdAt` and `updatedAt` timestamps
@@ -139,3 +139,6 @@ const port = 62887;
 app.listen(port, () => {
     console.log(`Server is live on port: ${port}`);
 });
+
+
+//1024

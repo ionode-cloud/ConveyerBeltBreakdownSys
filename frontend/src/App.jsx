@@ -167,7 +167,7 @@ const App = () => {
                 isVibration value={data.vibration} unit="mm/s" icon={TrendingUp}
               />
               <StatusCard title="Lubrication" status={data.lubrication} icon={Settings} />
-              <StatusCard title="Tension" status={data.tension} icon={Gauge} />
+              <StatusCard title="Alert" status={data.tension} icon={Gauge} />
             </div>
             <div className="conveyor-container">
               <img src={conver} alt="Conveyor Belt" className="conveyor" />
