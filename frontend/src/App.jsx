@@ -8,8 +8,9 @@ import "./App.css"
 import Video from './assets/conver belt.mp4'
 import conver from './assets/conver belt.png'
 
-const API_READ_URL = 'https://conveyorbelt.ionode.cloud/data';
-const API_PUSH_URL = 'https://conveyorbelt.ionode.cloud/data';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:62887';
+const API_READ_URL = `${BASE_URL}/data`;
+const API_PUSH_URL = `${BASE_URL}/data`;
 
 const App = () => {
   const [data, setData] = useState({
