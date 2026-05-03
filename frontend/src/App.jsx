@@ -33,24 +33,34 @@ const App = () => {
   // --- Push data to backend ---
   const pushData = async (updatedData) => {
     try {
-      const params = new URLSearchParams({
-        wind: updatedData.Wind,
-        beltWidth: updatedData.width,
-        speed: updatedData.speed,
-        torque: updatedData.torque,
-        beltTemp: updatedData.temp,
-        motorTemp: updatedData.motorTemp,
-        voltage: updatedData.voltage,
-        current: updatedData.current,
-        lastService: updatedData.lastMaintenance,
-        cause: updatedData.maintenanceCause,
-        vibration: updatedData.vibration,
-        lubricant: updatedData.lubrication,
-        tension: updatedData.tension
-      });
+      const payload = {
+        operationalMetrics: {
+          wind: updatedData.Wind,
+          beltWidth: updatedData.width,
+          speed: updatedData.speed,
+          torque: updatedData.torque,
+          beltTemp: updatedData.temp,
+          motorTemp: updatedData.motorTemp,
+          voltage: updatedData.voltage,
+          current: updatedData.current,
+        },
+        maintenanceLog: {
+          lastService: updatedData.lastMaintenance,
+          cause: updatedData.maintenanceCause,
+        },
+        conditionMonitoring: {
+          vibration: updatedData.vibration,
+          lubricant: updatedData.lubrication,
+          tension: updatedData.tension
+        }
+      };
 
-      await fetch(`${API_PUSH_URL}?${params.toString()}`, { method: 'GET' });
-      console.log('Data pushed successfully');
+      await fetch(API_PUSH_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      console.log('Data pushed successfully via PUT');
     } catch (err) {
       console.error('Error pushing data:', err);
     }
@@ -69,7 +79,7 @@ const App = () => {
         const condition = result?.data?.conditionMonitoring || {};
 
         setData(prev => {
-          const updatedData = {
+          const updatedMetrics = {
             ...prev,
             Wind: metrics.wind ?? prev.Wind,
             width: metrics.beltWidth ?? prev.width,
@@ -94,12 +104,11 @@ const App = () => {
             ].slice(-30)
           };
 
-          // Push updated data to backend
-          pushData(updatedData);
+          // Sync with backend via PUT
+          pushData(updatedMetrics);
 
-          return updatedData;
+          return updatedMetrics;
         });
-
       } catch (err) {
         console.error('Error fetching data:', err);
       }
@@ -108,7 +117,7 @@ const App = () => {
     fetchData();
     const interval = setInterval(fetchData, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); 
 
   const handleDownload = useCallback(() => {
     const dataToDownload = { timestamp: new Date().toISOString(), ...data };

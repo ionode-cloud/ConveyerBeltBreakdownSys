@@ -58,6 +58,16 @@ export async function putData(id, body) {
 }
 
 // ─────────────────────────────────────────────
+// PUT  /data  → Update the latest conveyor belt record
+// ─────────────────────────────────────────────
+export async function putLatestData(body) {
+  return request('/data', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+// ─────────────────────────────────────────────
 // DELETE /data/:id → Delete a record by id
 // id: MongoDB document _id string
 // ─────────────────────────────────────────────

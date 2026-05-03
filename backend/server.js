@@ -98,36 +98,87 @@ app.post('/data', async (req, res) => {
 });
 
 // =====================
+// PUT /data
+// Update the LATEST record (convenience for single-device systems)
+// Body/Query: nested or flat sensor JSON
+// =====================
+app.put('/data', async (req, res) => {
+  try {
+    const latestRecord = await ConveyorBelt.findOne().sort({ updatedAt: -1 });
+    if (!latestRecord) {
+      return res.status(404).json({ message: 'No record found to update. Use POST /data first.' });
+    }
+    await handleUpdate(latestRecord._id, req, res);
+  } catch (error) {
+    console.error('PUT /data error:', error);
+    res.status(500).json({ message: 'Failed to update record.', error: error.message });
+  }
+});
+
+// =====================
 // PUT /data/:id
 // Update a specific record by its MongoDB _id
-// Body: partial or full sensor JSON
+// Body/Query: nested or flat sensor JSON
 // =====================
 app.put('/data/:id', async (req, res) => {
+  const { id } = req.params;
+  await handleUpdate(id, req, res);
+});
+
+// --- Helper: Centralized Update Logic ---
+async function handleUpdate(id, req, res) {
   try {
-    const { id } = req.params;
+    // Merge body and query to support flexible data sources (Postman/Hardware/Frontend)
+    const data = { ...req.query, ...req.body };
+
     const {
       operationalMetrics,
       maintenanceLog,
-      conditionMonitoring
-    } = req.body;
+      conditionMonitoring,
+      ...flatData // Handle flat structure if provided
+    } = data;
 
-    // Build the $set object dynamically to support partial updates
     const updateData = {};
-    if (operationalMetrics) {
+
+    // 1. Process Nested Objects
+    if (operationalMetrics && typeof operationalMetrics === 'object') {
       Object.entries(operationalMetrics).forEach(([k, v]) => {
         updateData[`operationalMetrics.${k}`] = v;
       });
     }
-    if (maintenanceLog) {
+    if (maintenanceLog && typeof maintenanceLog === 'object') {
       Object.entries(maintenanceLog).forEach(([k, v]) => {
-        updateData[`maintenanceLog.${k}`] = k === 'lastService' ? new Date(v) : v;
+        if (k === 'lastService') {
+          const d = new Date(v);
+          updateData[`maintenanceLog.${k}`] = isNaN(d.getTime()) ? null : d;
+        } else {
+          updateData[`maintenanceLog.${k}`] = v;
+        }
       });
     }
-    if (conditionMonitoring) {
+    if (conditionMonitoring && typeof conditionMonitoring === 'object') {
       Object.entries(conditionMonitoring).forEach(([k, v]) => {
         updateData[`conditionMonitoring.${k}`] = v;
       });
     }
+
+    // 2. Process Flat Data (for hardware/simple frontend calls)
+    const operationalKeys = ['wind', 'beltWidth', 'speed', 'torque', 'beltTemp', 'motorTemp', 'voltage', 'current'];
+    const maintenanceKeys = ['lastService', 'cause'];
+    const conditionKeys = ['vibration', 'lubricant', 'tension'];
+
+    Object.entries(flatData).forEach(([k, v]) => {
+      if (operationalKeys.includes(k)) updateData[`operationalMetrics.${k}`] = v;
+      if (maintenanceKeys.includes(k)) {
+        if (k === 'lastService') {
+          const d = new Date(v);
+          updateData[`maintenanceLog.${k}`] = isNaN(d.getTime()) ? null : d;
+        } else {
+          updateData[`maintenanceLog.${k}`] = v;
+        }
+      }
+      if (conditionKeys.includes(k)) updateData[`conditionMonitoring.${k}`] = v;
+    });
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ message: 'No valid fields provided for update.' });
@@ -145,10 +196,10 @@ app.put('/data/:id', async (req, res) => {
 
     res.status(200).json({ message: 'Record updated successfully.', data: updatedRecord });
   } catch (error) {
-    console.error('PUT /data/:id error:', error);
+    console.error('Update helper error:', error);
     res.status(500).json({ message: 'Failed to update record.', error: error.message });
   }
-});
+}
 
 // =====================
 // DELETE /data/:id
